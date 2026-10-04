@@ -42,9 +42,9 @@ export default function GeneratorPage() {
       return;
     }
 
-    // Compulsory 12 digits validation
-    if (trimmedLoan.length !== 12) {
-      setError("Loan Account Number must be exactly 12 digits.");
+    // Compulsory 12 digits validation (numbers only)
+    if (trimmedLoan.length !== 12 || !/^\d{12}$/.test(trimmedLoan)) {
+      setError("Loan Account Number must be exactly 12 digits (numbers only).");
       return;
     }
 
@@ -152,17 +152,20 @@ export default function GeneratorPage() {
               </div>
               <input
                 type="text"
+                inputMode="numeric"
                 required
                 maxLength={12}
                 placeholder="e.g. 123456789012"
                 value={loanAccountNumber}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/\s+/g, "").toUpperCase();
+                  // Only allow digits 0-9
+                  const val = e.target.value.replace(/\D/g, "");
                   if (val.length <= 12) {
                     setLoanAccountNumber(val);
                   }
                 }}
-                className={`w-full px-3 py-2 rounded-lg border text-sm font-semibold uppercase text-slate-900 focus:outline-none focus:ring-2 ${
+                onWheel={(e) => (e.target as HTMLElement).blur()}
+                className={`w-full px-3 py-2 rounded-lg border text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 ${
                   loanAccountNumber.length > 0 && loanAccountNumber.length !== 12
                     ? "border-amber-300 focus:ring-amber-500"
                     : "border-slate-300 focus:ring-[#003874]"
