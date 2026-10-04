@@ -58,11 +58,54 @@ export default function CustomerPaymentView({ token }: { token: string }) {
       .catch((err) => console.error("QR generation error:", err));
   }, [token]);
 
-  const handleCopyUpiId = () => {
+  // Robust mobile-safe clipboard copy with fallback
+  const handleCopyUpiId = async () => {
     if (!data?.upiId) return;
-    navigator.clipboard.writeText(data.upiId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const textToCopy = data.upiId;
+    let copiedSuccess = false;
+
+    // 1. Modern async Clipboard API
+    if (navigator?.clipboard && typeof navigator.clipboard.writeText === "function") {
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        copiedSuccess = true;
+      } catch (err) {
+        console.warn("Async clipboard failed, using fallback:", err);
+      }
+    }
+
+    // 2. Reliable fallback for mobile webviews (document.execCommand)
+    if (!copiedSuccess && typeof document !== "undefined") {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        textArea.style.position = "fixed";
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.width = "2em";
+        textArea.style.height = "2em";
+        textArea.style.padding = "0";
+        textArea.style.border = "none";
+        textArea.style.outline = "none";
+        textArea.style.boxShadow = "none";
+        textArea.style.background = "transparent";
+        textArea.style.opacity = "0";
+        textArea.setAttribute("readonly", "");
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        textArea.setSelectionRange(0, 99999);
+        copiedSuccess = document.execCommand("copy");
+        document.body.removeChild(textArea);
+      } catch (err) {
+        console.error("Fallback copy failed:", err);
+      }
+    }
+
+    if (copiedSuccess) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   // 1. Initial Skeleton Loading Screen (Guarantees NO flash of error screen)
@@ -78,18 +121,18 @@ export default function CustomerPaymentView({ token }: { token: string }) {
           {/* Details Skeleton Card */}
           <div className="bg-white rounded-lg p-3.5 border border-slate-200 shadow-xs space-y-2.5 animate-pulse">
             <div className="h-3 bg-slate-200 rounded w-1/3 mx-auto"></div>
-            <div className="h-6 bg-slate-200 rounded w-1/2 mx-auto"></div>
-            <div className="border-t border-slate-100 pt-2 space-y-2">
+            <div className="h-7 bg-slate-200 rounded w-1/2 mx-auto"></div>
+            <div className="border-t border-slate-100 pt-2 space-y-2.5">
               <div className="flex justify-between">
-                <div className="h-3 bg-slate-200 rounded w-1/4"></div>
-                <div className="h-3 bg-slate-200 rounded w-1/3"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+                <div className="h-5 bg-slate-200 rounded w-1/2"></div>
               </div>
               <div className="flex justify-between">
-                <div className="h-3 bg-slate-200 rounded w-1/4"></div>
-                <div className="h-3 bg-slate-200 rounded w-1/3"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+                <div className="h-5 bg-slate-200 rounded w-1/2"></div>
               </div>
             </div>
-            <div className="h-8 bg-blue-50/70 border border-blue-100 rounded w-full mt-2"></div>
+            <div className="h-10 bg-blue-50/70 border border-blue-100 rounded w-full mt-2"></div>
           </div>
 
           {/* Buttons Skeleton */}
@@ -149,61 +192,69 @@ export default function CustomerPaymentView({ token }: { token: string }) {
     amount: data.amount,
   });
 
-  // 4. Main Non-Scrollable Customer Screen
+  // 4. Main Non-Scrollable Customer Screen with Large, Clear Typography
   return (
     <div className="h-screen w-screen max-h-screen overflow-hidden bg-slate-50 flex flex-col justify-between p-3 sm:p-4">
       {/* Centered Main Box with compact padding and no scrolling */}
       <div className="max-w-sm mx-auto w-full flex-1 flex flex-col justify-center space-y-2.5">
         {/* Official Equitas Logo */}
-        <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-xs flex items-center justify-center">
+        <div className="bg-white rounded-lg p-2.5 sm:p-3 border border-slate-200 shadow-xs flex items-center justify-center">
           <EquitasLogo className="h-8 sm:h-9" />
         </div>
 
-        {/* Customer & Loan Details Card */}
-        <div className="bg-white rounded-lg p-3.5 border border-slate-200 shadow-xs space-y-2">
+        {/* Customer & Loan Details Card with Larger Font Sizes for Elderly & High Visibility */}
+        <div className="bg-white rounded-lg p-3 sm:p-3.5 border border-slate-200 shadow-xs space-y-2">
           {data.amount && data.amount > 0 ? (
             <div className="text-center pb-2 border-b border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 Amount Due
               </span>
-              <div className="text-2xl font-extrabold text-[#003874]">
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#003874] tracking-tight mt-0.5">
                 {formatINR(data.amount)}
               </div>
             </div>
           ) : null}
 
-          <div className="space-y-1.5 text-xs">
-            <div className="flex justify-between items-center py-0.5">
-              <span className="text-slate-500">Customer Name</span>
-              <span className="font-semibold text-slate-900">{data.customerName}</span>
+          <div className="space-y-2">
+            {/* Customer Name (Larger & Clearer) */}
+            <div className="flex justify-between items-baseline py-0.5">
+              <span className="text-xs font-semibold text-slate-500 shrink-0">Customer Name</span>
+              <span className="text-base sm:text-lg font-bold text-slate-900 text-right truncate pl-2">
+                {data.customerName}
+              </span>
             </div>
 
-            <div className="flex justify-between items-center py-0.5 border-t border-slate-100 pt-1">
-              <span className="text-slate-500">Loan Account</span>
-              <span className="font-mono font-bold text-slate-900">{data.loanAccountNumber}</span>
+            {/* Loan Account Number (Larger, Monospaced & Clearer) */}
+            <div className="flex justify-between items-baseline py-0.5 border-t border-slate-100 pt-1.5">
+              <span className="text-xs font-semibold text-slate-500 shrink-0">Loan Account</span>
+              <span className="text-base sm:text-lg font-mono font-extrabold text-slate-900 tracking-wider text-right">
+                {data.loanAccountNumber}
+              </span>
             </div>
 
-            {/* Loan UPI ID with copy button */}
+            {/* Loan UPI ID with copy button (Larger, high contrast) */}
             <div className="border-t border-slate-100 pt-1.5">
-              <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+              <span className="text-[11px] text-slate-500 font-semibold block mb-1">
                 Loan UPI ID
               </span>
-              <div className="flex items-center justify-between gap-1.5 p-1.5 px-2 rounded bg-blue-50/70 border border-blue-100">
-                <code className="font-mono text-xs font-bold text-[#003874] select-all truncate">
+              <div className="flex items-center justify-between gap-1.5 p-1.5 sm:p-2 rounded bg-blue-50/80 border border-blue-100">
+                <code className="font-mono text-xs sm:text-sm font-bold text-[#003874] select-all truncate">
                   {data.upiId}
                 </code>
                 <button
+                  type="button"
                   onClick={handleCopyUpiId}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors shrink-0"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white border border-slate-200 text-xs font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 transition-colors shrink-0 shadow-xs"
+                  aria-label="Copy UPI ID"
                 >
                   {copied ? (
                     <>
-                      <Check className="w-3 h-3 text-emerald-600" />
-                      <span>Copied</span>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700">Copied</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3 h-3 text-slate-400" />
+                      <Copy className="w-3.5 h-3.5 text-slate-500" />
                       <span>Copy</span>
                     </>
                   )}
@@ -250,7 +301,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
             {/* Any UPI App */}
             <a
               href={upiLinks.universal}
-              className="flex items-center justify-center gap-2 py-3 px-3 rounded-lg bg-[#003874] hover:bg-[#002855] text-white shadow-xs transition-transform active:scale-95"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-[#003874] hover:bg-[#002855] text-white shadow-xs transition-transform active:scale-95"
             >
               <UpiGenericLogo className="h-4 w-auto shrink-0" />
               <span className="text-xs font-bold">Any UPI App</span>
@@ -261,6 +312,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
         {/* Get QR Code Button (prevents page from scrolling) */}
         <div>
           <button
+            type="button"
             onClick={() => setShowQrModal(true)}
             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors"
           >
@@ -280,6 +332,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-lg p-4 max-w-xs w-full text-center space-y-3 relative shadow-xl">
             <button
+              type="button"
               onClick={() => setShowQrModal(false)}
               className="absolute top-2.5 right-2.5 p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700"
             >
@@ -288,7 +341,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
 
             <div className="pt-1">
               <span className="text-xs font-bold text-[#003874] block">Scan to Pay</span>
-              <span className="text-[11px] text-slate-500 font-mono">{data.loanAccountNumber}</span>
+              <span className="text-sm font-bold text-slate-800 font-mono">{data.loanAccountNumber}</span>
             </div>
 
             {qrCodeDataUrl ? (
@@ -311,6 +364,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
             </div>
 
             <button
+              type="button"
               onClick={() => setShowQrModal(false)}
               className="w-full py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
             >
