@@ -25,7 +25,7 @@ export default function GeneratorPage() {
   // Auto-calculated UPI ID preview as user types
   const autoUpiId = loanAccountNumber.trim()
     ? generateEquitasUpiId(loanAccountNumber)
-    : "loan.<loanaccountnumber>@equitas";
+    : "loan.<loannumber>@equitas";
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,7 +155,7 @@ export default function GeneratorPage() {
                 inputMode="numeric"
                 required
                 maxLength={12}
-                placeholder="e.g. 123456789012"
+                placeholder="e.g. 7000XXXXXXXX"
                 value={loanAccountNumber}
                 onChange={(e) => {
                   // Only allow digits 0-9
