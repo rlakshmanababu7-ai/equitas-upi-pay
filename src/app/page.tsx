@@ -36,13 +36,19 @@ export default function GeneratorPage() {
       return;
     }
 
-    if (!loanAccountNumber.trim()) {
+    const trimmedLoan = loanAccountNumber.trim().toUpperCase();
+    if (!trimmedLoan) {
       setError("Please enter Loan Account Number.");
       return;
     }
 
+    // Compulsory 12 digits validation
+    if (trimmedLoan.length !== 12) {
+      setError("Loan Account Number must be exactly 12 digits.");
+      return;
+    }
+
     const trimmedCustomer = customerName.trim();
-    const trimmedLoan = loanAccountNumber.trim().toUpperCase();
     const parsedAmount = amount.trim() ? parseFloat(amount) : null;
     const upiId = generateEquitasUpiId(trimmedLoan);
 
@@ -76,13 +82,10 @@ export default function GeneratorPage() {
     setTimeout(() => setCopied(false), 2500);
   };
 
+  // Only share that link only in WhatsApp share (no extra text)
   const getWhatsAppUrl = () => {
     if (!generatedResult) return "#";
-    const amountText = generatedResult.amount
-      ? ` of ${formatINR(generatedResult.amount)}`
-      : "";
-    const msg = `Dear ${generatedResult.customerName}, please use this link to pay your Equitas loan EMI${amountText} (Loan A/c: ${generatedResult.loanAccountNumber}):\n\n${generatedResult.paymentUrl}\n\nUPI ID: ${generatedResult.upiId}`;
-    return `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(generatedResult.paymentUrl)}`;
   };
 
   return (
@@ -98,13 +101,13 @@ export default function GeneratorPage() {
       </header>
 
       {/* Main Form Container */}
-      <main className="max-w-lg mx-auto px-4 py-6 w-full flex-1 flex flex-col justify-center">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sm:p-6">
-          <h1 className="text-xl font-bold text-[#003874] tracking-tight">
+      <main className="max-w-lg mx-auto px-4 py-4 w-full flex-1 flex flex-col justify-center">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5">
+          <h1 className="text-xl font-bold text-[#003874] tracking-tight mb-1">
             Generate Loan Payment Link
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5 mb-5">
-            Enter loan details to generate an instant Equitas UPI payment link
+          <p className="text-xs text-slate-500 mb-4">
+            Enter 12-digit loan details to generate an instant Equitas UPI payment link
           </p>
 
           {error && (
@@ -113,7 +116,7 @@ export default function GeneratorPage() {
             </div>
           )}
 
-          <form onSubmit={handleGenerate} className="space-y-4">
+          <form onSubmit={handleGenerate} className="space-y-3.5">
             {/* Field 1: Customer Name (Mandatory) */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -129,18 +132,39 @@ export default function GeneratorPage() {
               />
             </div>
 
-            {/* Field 2: Loan Account Number (Mandatory) */}
+            {/* Field 2: Loan Account Number (Mandatory - Compulsory 12 Digits) */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Loan Account Number <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Loan Account Number <span className="text-red-500">*</span>
+                </label>
+                <span
+                  className={`text-[11px] font-semibold ${
+                    loanAccountNumber.length === 12
+                      ? "text-emerald-600"
+                      : "text-slate-400"
+                  }`}
+                >
+                  {loanAccountNumber.length}/12 digits
+                </span>
+              </div>
               <input
                 type="text"
                 required
-                placeholder="e.g. DHJ474949"
+                maxLength={12}
+                placeholder="e.g. 123456789012"
                 value={loanAccountNumber}
-                onChange={(e) => setLoanAccountNumber(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003874]"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\s+/g, "").toUpperCase();
+                  if (val.length <= 12) {
+                    setLoanAccountNumber(val);
+                  }
+                }}
+                className={`w-full px-3 py-2 rounded-lg border text-sm font-semibold uppercase text-slate-900 focus:outline-none focus:ring-2 ${
+                  loanAccountNumber.length > 0 && loanAccountNumber.length !== 12
+                    ? "border-amber-300 focus:ring-amber-500"
+                    : "border-slate-300 focus:ring-[#003874]"
+                }`}
               />
 
               {/* Automatic UPI ID Preview */}
@@ -152,7 +176,7 @@ export default function GeneratorPage() {
               </div>
             </div>
 
-            {/* Field 3: Amount (Optional) */}
+            {/* Field 3: Amount (Optional - Text Field Only, Numbers Only, No Stepper Arrows) */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -161,16 +185,22 @@ export default function GeneratorPage() {
                 <span className="text-[11px] text-slate-400 font-medium">Optional</span>
               </div>
               <div className="relative rounded-lg">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400 text-sm">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400 text-sm pointer-events-none">
                   ₹
                 </span>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="1"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="e.g. 5000 (optional)"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Only numbers and at most one decimal point allowed
+                    if (/^\d*\.?\d*$/.test(val)) {
+                      setAmount(val);
+                    }
+                  }}
+                  onWheel={(e) => (e.target as HTMLElement).blur()}
                   className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003874]"
                 />
               </div>
@@ -178,7 +208,7 @@ export default function GeneratorPage() {
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-[#003874] hover:bg-[#002855] text-white font-bold text-sm shadow-sm transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-[#003874] hover:bg-[#002855] text-white font-bold text-sm shadow-sm transition-colors mt-2"
             >
               Generate Payment Link
               <ArrowRight className="w-4 h-4" />
@@ -187,13 +217,13 @@ export default function GeneratorPage() {
 
           {/* Generated Result Card */}
           {generatedResult && (
-            <div className="mt-6 pt-5 border-t border-slate-200 animate-in fade-in">
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3.5 mb-3">
+            <div className="mt-5 pt-4 border-t border-slate-200 animate-in fade-in">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-2.5">
                 <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs mb-1">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   Payment Link Generated!
                 </div>
-                <div className="text-xs text-slate-600 space-y-0.5 mt-1.5">
+                <div className="text-xs text-slate-600 space-y-0.5 mt-1">
                   <div>
                     <strong>Customer:</strong> {generatedResult.customerName}
                   </div>
@@ -241,6 +271,7 @@ export default function GeneratorPage() {
                     )}
                   </button>
 
+                  {/* WhatsApp Share: Only link shared, no extra info */}
                   <a
                     href={getWhatsAppUrl()}
                     target="_blank"
@@ -268,7 +299,7 @@ export default function GeneratorPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-3 text-center text-xs text-slate-400">
+      <footer className="py-2.5 text-center text-xs text-slate-400">
         Equitas Small Finance Bank
       </footer>
     </div>

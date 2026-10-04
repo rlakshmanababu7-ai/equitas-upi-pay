@@ -223,25 +223,25 @@ export default function CustomerPaymentView({ token }: { token: string }) {
             {/* Google Pay */}
             <a
               href={upiLinks.googlePay}
-              className="flex items-center justify-center gap-2.5 py-3 px-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 shadow-xs transition-transform active:scale-95"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 shadow-xs transition-transform active:scale-95"
             >
-              <GooglePayLogo className="w-6 h-6 shrink-0" />
+              <GooglePayLogo className="w-7 h-7 shrink-0" />
               <span className="text-xs font-bold text-slate-800">Google Pay</span>
             </a>
 
             {/* PhonePe */}
             <a
               href={upiLinks.phonePe}
-              className="flex items-center justify-center gap-2.5 py-3 px-3 rounded-lg bg-white border border-purple-200 hover:bg-purple-50/50 shadow-xs transition-transform active:scale-95"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white border border-purple-200 hover:bg-purple-50/50 shadow-xs transition-transform active:scale-95"
             >
-              <PhonePeLogo className="w-6 h-6 shrink-0" />
+              <PhonePeLogo className="w-7 h-7 shrink-0" />
               <span className="text-xs font-bold text-purple-900">PhonePe</span>
             </a>
 
             {/* Paytm */}
             <a
               href={upiLinks.paytm}
-              className="flex items-center justify-center gap-2.5 py-3 px-3 rounded-lg bg-white border border-sky-200 hover:bg-sky-50/50 shadow-xs transition-transform active:scale-95"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white border border-sky-200 hover:bg-sky-50/50 shadow-xs transition-transform active:scale-95"
             >
               <PaytmLogo className="h-6 w-auto shrink-0" />
               <span className="text-xs font-bold text-[#002e6e]">Paytm</span>
