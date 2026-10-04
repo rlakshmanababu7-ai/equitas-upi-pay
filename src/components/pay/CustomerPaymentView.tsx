@@ -1,90 +1,71 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import EquitasLogo from "@/components/EquitasLogo";
-import { Copy, Check, Smartphone, QrCode, AlertCircle } from "lucide-react";
-import { formatINR } from "@/lib/upi";
-
-interface UpiLinks {
-  universal: string;
-  googlePay: string;
-  phonePe: string;
-  paytm: string;
-}
-
-interface PaymentData {
-  expired: boolean;
-  customerName: string;
-  loanAccountNumber: string;
-  upiId: string;
-  amount?: number | null;
-  upiLinks?: UpiLinks;
-  qrCodeDataUrl?: string;
-  message?: string;
-}
+import { Copy, Check, Smartphone, QrCode, AlertCircle, X } from "lucide-react";
+import { formatINR, generateEquitasUpiLinks, buildEquitasUpiQuery } from "@/lib/upi";
+import { decodePaymentPayload, DecodedPaymentData } from "@/lib/payload";
+import QRCode from "qrcode";
 
 export default function CustomerPaymentView({ token }: { token: string }) {
-  const [data, setData] = useState<PaymentData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DecodedPaymentData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/pay/${encodeURIComponent(token)}`);
-        const result = await res.json();
-
-        if (!res.ok) {
-          throw new Error(result.error || "Failed to load payment details.");
-        }
-
-        setData(result);
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Failed to load payment details.");
-        }
-      } finally {
-        setLoading(false);
-      }
+    if (!token) {
+      setError("Payment link is missing or invalid.");
+      return;
     }
 
-    if (token) {
-      loadData();
+    // Decode completely on the frontend - NO DB needed
+    const decoded = decodePaymentPayload(token);
+    if (!decoded) {
+      setError("This payment link is invalid or corrupted.");
+      return;
     }
+
+    setData(decoded);
+
+    // Generate QR code directly on frontend
+    const query = `upi://pay?${buildEquitasUpiQuery({
+      loanAccountNumber: decoded.loanAccountNumber,
+      upiId: decoded.upiId,
+      customerName: decoded.customerName,
+      amount: decoded.amount,
+    })}`;
+
+    QRCode.toDataURL(query, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 220,
+      color: {
+        dark: "#003874", // Equitas Blue
+        light: "#ffffff",
+      },
+    })
+      .then((url) => setQrCodeDataUrl(url))
+      .catch((err) => console.error("QR generation error:", err));
   }, [token]);
 
   const handleCopyUpiId = () => {
     if (!data?.upiId) return;
     navigator.clipboard.writeText(data.upiId);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setTimeout(() => setCopied(false), 2000);
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-sm w-full border border-slate-200 shadow-sm text-center space-y-4">
-          <EquitasLogo className="h-9 justify-center" />
-          <p className="text-xs text-slate-500 animate-pulse">Loading loan payment details...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-sm w-full border border-slate-200 shadow-sm text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto">
-            <AlertCircle className="w-6 h-6" />
+      <div className="h-screen w-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 max-w-xs w-full border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-5 h-5" />
           </div>
-          <h2 className="text-base font-bold text-slate-800">Payment Link Unavailable</h2>
-          <p className="text-xs text-slate-500">{error || "This payment link could not be found."}</p>
+          <h2 className="text-sm font-bold text-slate-800">Invalid Payment Link</h2>
+          <p className="text-xs text-slate-500">{error || "Could not load loan details."}</p>
         </div>
       </div>
     );
@@ -92,72 +73,82 @@ export default function CustomerPaymentView({ token }: { token: string }) {
 
   if (data.expired) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-sm w-full border border-slate-200 shadow-sm text-center space-y-4">
-          <EquitasLogo className="h-9 justify-center" />
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
-            <AlertCircle className="w-6 h-6" />
+      <div className="h-screen w-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 max-w-xs w-full border border-slate-200 shadow-sm text-center space-y-3">
+          <EquitasLogo className="h-8 justify-center" />
+          <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-5 h-5" />
           </div>
-          <h2 className="text-base font-bold text-slate-800">Payment Link Expired</h2>
+          <h2 className="text-sm font-bold text-slate-800">Payment Link Expired</h2>
           <p className="text-xs text-slate-500">
-            {data.message || "This loan payment link has expired. Please contact Equitas for a new link."}
+            This loan payment link has expired (1 day validity). Please contact Equitas for a new link.
           </p>
         </div>
       </div>
     );
   }
 
+  const upiLinks = generateEquitasUpiLinks({
+    loanAccountNumber: data.loanAccountNumber,
+    upiId: data.upiId,
+    customerName: data.customerName,
+    amount: data.amount,
+  });
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between py-6 px-4">
-      <div className="max-w-md mx-auto w-full space-y-5">
-        {/* Equitas Bank Logo Header */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-center">
-          <EquitasLogo className="h-10" />
+    <div className="h-screen w-screen max-h-screen overflow-hidden bg-slate-50 flex flex-col justify-between p-3 sm:p-4">
+      {/* Centered Main Box with compact padding and no scrolling */}
+      <div className="max-w-sm mx-auto w-full flex-1 flex flex-col justify-center space-y-3">
+        {/* Official Equitas Logo */}
+        <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-xs flex items-center justify-center">
+          <EquitasLogo className="h-8" />
         </div>
 
         {/* Customer & Loan Details Card */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div className="bg-white rounded-lg p-3.5 border border-slate-200 shadow-xs space-y-2">
           {data.amount && data.amount > 0 ? (
-            <div className="text-center pb-4 border-b border-slate-100">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+            <div className="text-center pb-2 border-b border-slate-100">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Amount Due
               </span>
-              <div className="text-3xl font-extrabold text-[#003874] mt-1">
+              <div className="text-2xl font-extrabold text-[#003874]">
                 {formatINR(data.amount)}
               </div>
             </div>
           ) : null}
 
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between items-center py-1 border-b border-slate-100">
-              <span className="text-xs text-slate-500">Customer Name</span>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex justify-between items-center py-0.5">
+              <span className="text-slate-500">Customer Name</span>
               <span className="font-semibold text-slate-900">{data.customerName}</span>
             </div>
 
-            <div className="flex justify-between items-center py-1 border-b border-slate-100">
-              <span className="text-xs text-slate-500">Loan Account Number</span>
+            <div className="flex justify-between items-center py-0.5 border-t border-slate-100 pt-1">
+              <span className="text-slate-500">Loan Account</span>
               <span className="font-mono font-bold text-slate-900">{data.loanAccountNumber}</span>
             </div>
 
             {/* Loan UPI ID with copy button */}
-            <div className="pt-2">
-              <span className="text-xs text-slate-500 block mb-1.5">Loan UPI ID</span>
-              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-blue-50/60 border border-blue-100">
+            <div className="border-t border-slate-100 pt-1.5">
+              <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+                Loan UPI ID
+              </span>
+              <div className="flex items-center justify-between gap-1.5 p-1.5 px-2 rounded bg-blue-50/70 border border-blue-100">
                 <code className="font-mono text-xs font-bold text-[#003874] select-all truncate">
                   {data.upiId}
                 </code>
                 <button
                   onClick={handleCopyUpiId}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shrink-0"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors shrink-0"
                 >
                   {copied ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <Check className="w-3 h-3 text-emerald-600" />
                       <span>Copied</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5 text-slate-500" />
+                      <Copy className="w-3 h-3 text-slate-400" />
                       <span>Copy</span>
                     </>
                   )}
@@ -168,88 +159,117 @@ export default function CustomerPaymentView({ token }: { token: string }) {
         </div>
 
         {/* UPI App Buttons Section */}
-        {data.upiLinks && (
-          <div className="space-y-3">
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block px-1">
-              Pay via UPI App
-            </span>
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block px-0.5">
+            Pay via UPI App
+          </span>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              {/* Google Pay */}
-              <a
-                href={data.upiLinks.googlePay}
-                className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 shadow-sm transition-transform active:scale-95"
-              >
-                <div className="w-5 h-5 flex items-center justify-center font-bold text-sm text-blue-600">
-                  G
-                </div>
-                <span className="text-xs font-bold text-slate-800">Google Pay</span>
-              </a>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Google Pay */}
+            <a
+              href={upiLinks.googlePay}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 shadow-xs transition-transform active:scale-95"
+            >
+              <div className="w-4 h-4 flex items-center justify-center font-bold text-xs text-blue-600">
+                G
+              </div>
+              <span className="text-xs font-bold text-slate-800">Google Pay</span>
+            </a>
 
-              {/* PhonePe */}
-              <a
-                href={data.upiLinks.phonePe}
-                className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-white border border-purple-200 hover:bg-purple-50/50 shadow-sm transition-transform active:scale-95"
-              >
-                <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[10px]">
-                  पे
-                </div>
-                <span className="text-xs font-bold text-purple-900">PhonePe</span>
-              </a>
+            {/* PhonePe */}
+            <a
+              href={upiLinks.phonePe}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white border border-purple-200 hover:bg-purple-50/50 shadow-xs transition-transform active:scale-95"
+            >
+              <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[9px]">
+                पे
+              </div>
+              <span className="text-xs font-bold text-purple-900">PhonePe</span>
+            </a>
 
-              {/* Paytm */}
-              <a
-                href={data.upiLinks.paytm}
-                className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-white border border-sky-200 hover:bg-sky-50/50 shadow-sm transition-transform active:scale-95"
-              >
-                <div className="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-[8px]">
-                  Pay
-                </div>
-                <span className="text-xs font-bold text-sky-900">Paytm</span>
-              </a>
+            {/* Paytm */}
+            <a
+              href={upiLinks.paytm}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white border border-sky-200 hover:bg-sky-50/50 shadow-xs transition-transform active:scale-95"
+            >
+              <div className="w-4 h-4 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-[7px]">
+                Pay
+              </div>
+              <span className="text-xs font-bold text-sky-900">Paytm</span>
+            </a>
 
-              {/* Any UPI App */}
-              <a
-                href={data.upiLinks.universal}
-                className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-[#003874] hover:bg-[#002855] text-white shadow-sm transition-transform active:scale-95"
-              >
-                <Smartphone className="w-4 h-4" />
-                <span className="text-xs font-bold">Any UPI App</span>
-              </a>
-            </div>
+            {/* Any UPI App */}
+            <a
+              href={upiLinks.universal}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-[#003874] hover:bg-[#002855] text-white shadow-xs transition-transform active:scale-95"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span className="text-xs font-bold">Any UPI App</span>
+            </a>
           </div>
-        )}
+        </div>
 
-        {/* QR Code Section */}
-        {data.qrCodeDataUrl && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm text-center space-y-3">
-            <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-              <QrCode className="w-4 h-4 text-[#003874]" />
-              Scan QR Code to Pay
-            </div>
-
-            <div className="inline-block p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
-              <Image
-                src={data.qrCodeDataUrl}
-                alt="Equitas UPI QR Code"
-                width={200}
-                height={200}
-                unoptimized
-                className="mx-auto"
-              />
-            </div>
-
-            <p className="text-xs text-slate-500">
-              Scan with Google Pay, PhonePe, Paytm, BHIM, or any UPI app
-            </p>
-          </div>
-        )}
+        {/* Get QR Code Button (prevents page from scrolling) */}
+        <div>
+          <button
+            onClick={() => setShowQrModal(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors"
+          >
+            <QrCode className="w-4 h-4 text-[#003874]" />
+            <span>Get QR Code</span>
+          </button>
+        </div>
       </div>
 
       {/* Footer */}
-      <footer className="text-center text-xs text-slate-400 py-4">
+      <footer className="text-center text-[10px] text-slate-400 py-1 shrink-0">
         Equitas Small Finance Bank
       </footer>
+
+      {/* QR Code Popup Modal */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-lg p-4 max-w-xs w-full text-center space-y-3 relative shadow-xl">
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="absolute top-2.5 right-2.5 p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="pt-1">
+              <span className="text-xs font-bold text-[#003874] block">Scan to Pay</span>
+              <span className="text-[11px] text-slate-500">{data.loanAccountNumber}</span>
+            </div>
+
+            {qrCodeDataUrl ? (
+              <div className="inline-block p-2 bg-white border border-slate-200 rounded">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrCodeDataUrl}
+                  alt="Equitas UPI QR Code"
+                  className="w-44 h-44 mx-auto"
+                />
+              </div>
+            ) : (
+              <div className="w-44 h-44 flex items-center justify-center text-xs text-slate-400 mx-auto">
+                Generating QR...
+              </div>
+            )}
+
+            <div className="text-[10px] text-slate-400">
+              Scan with GPay, PhonePe, Paytm, BHIM, or any UPI app
+            </div>
+
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="w-full py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
