@@ -192,7 +192,7 @@ export default function GeneratorPage() {
                 inputMode="numeric"
                 required={!isManualUpi}
                 maxLength={12}
-                placeholder="e.g. 123456789012"
+                placeholder="e.g. 7000XXXXXXXX"
                 value={loanAccountNumber}
                 onChange={(e) => {
                   // Only allow digits 0-9
@@ -253,7 +253,7 @@ export default function GeneratorPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. loan.DHJ474949@equitas"
+               
                   value={manualUpiId}
                   onChange={(e) => setManualUpiId(e.target.value.trim().toLowerCase())}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003874]"

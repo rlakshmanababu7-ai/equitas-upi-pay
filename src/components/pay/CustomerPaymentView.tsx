@@ -246,7 +246,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
                 <button
                   type="button"
                   onClick={handleCopyUpiId}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white border border-slate-200 text-xs font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 transition-colors shrink-0 shadow-xs"
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded bg-yellow-300 border border-slate-200 text-xs font-bold text-slate-800 hover:bg-slate-50 active:bg-slate-100 transition-colors shrink-0 shadow-xs"
                   aria-label="Copy UPI ID"
                 >
                   {copied ? (
