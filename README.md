@@ -1,45 +1,42 @@
 # Equitas — Loan UPI Payment Link Generator
 
-A focused, industry-level web application for generating Equitas loan UPI payment links.
+A lightweight, high-performance web application for generating Equitas loan UPI payment links.
 
 ---
 
-## ⚡ Overview
+## ⚡ Architecture: 100% Frontend & Stateless (Zero Database)
 
-### 1. Link Generator (`/` and `/office`)
-- **No login or authentication screens** required.
-- **Mandatory Fields:**
-  1. **Customer Name**
-  2. **Loan Account Number**
-- **Automatic UPI ID Generation:**
-  - Format: `loan.<loanaccountnumber>@equitas`
-  - Example: `loan.DHJ474949@equitas` (updates in real time as you type)
-- **Optional Field:**
-  3. **Amount (INR)** (optional; if left empty, customer pays as per their EMI dues)
-- **Actions:**
-  - One-click **Generate Payment Link** (valid for 1 day)
-  - One-click **Copy Link**
-  - **WhatsApp Share** template
-  - **Open Payment Page** preview
+- **Database**: **NONE**. No database, no Prisma DB, no SQLite, no PostgreSQL.
+- **Backend Latency**: Zero. The entire payment data (`customerName`, `loanAccountNumber`, `amount`, `createdAt`) is encoded directly into a URL-safe, tamper-resistant token.
+- **Expiry**: 1 day validity (calculated directly from the token timestamp).
 
 ---
 
-### 2. Customer Payment Page (`/pay/[token]`)
-Industry-level simple, trustworthy mobile-first interface:
-- **Equitas Logo** prominently displayed at the top
-- **Customer Name**
-- **Customer Loan Account Number**
-- **Loan UPI ID** (`loan.<loanaccountnumber>@equitas`) with 1-click copy button
-- **Amount** (if specified)
-- **UPI App Buttons:**
-  - Google Pay (`tez://`)
-  - PhonePe (`phonepe://`)
-  - Paytm (`paytmmp://`)
-  - Any UPI App (`upi://pay`)
-- **QR Code** for scanning with any UPI mobile app
+## 🚀 Vercel Deployment
+
+### Are any Environment Variables required?
+**NO.** There are **ZERO mandatory environment variables**!
+You can import the repository into Vercel and click **Deploy** immediately.
+
+### Optional Environment Variable
+| Variable | Required? | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `NEXT_PUBLIC_APP_URL` | **Optional** | Your public production domain URL. If omitted, the app automatically defaults to the browser's current `window.location.origin`. | `https://your-app.vercel.app` |
 
 ---
 
-## ⏱ Expiry Validity
-- Every link is valid for **1 day (24 hours)** from generation time.
-- Clean customer payment experience without countdown clutter.
+## 🛠 Key Features
+
+1. **Link Generator (`/`)**:
+   - Customer Name (Mandatory)
+   - Loan Account Number (Mandatory, numbers only, exactly 12 digits)
+   - Automatic UPI ID preview: `loan.<loanaccountnumber>@equitas`
+   - Amount (Optional, text field, numbers only, no stepper arrows)
+   - One-click **Copy Link** & **WhatsApp Share** (sends only the link).
+
+2. **Customer Payment Screen (`/pay/[token]`)**:
+   - Official Equitas Small Finance Bank logo
+   - Customer Name & 12-digit Loan Account Number (large, high-contrast typography)
+   - Loan UPI ID with a robust mobile-safe **Copy** button
+   - Official brand logos for **Google Pay**, **PhonePe**, and **Paytm**
+   - **"Get QR Code"** popup button ensuring the page fits on mobile screens without scrolling.
