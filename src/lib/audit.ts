@@ -24,7 +24,7 @@ interface LogAuditOptions {
 /**
  * Creates an immutable audit trail entry for compliance and security monitoring.
  */
-export async function logAuditEvent(options: LogAuditOptions): Promise<void> {
+export async function logAuditEvent(options: any): Promise<void> {
   try {
     await db.auditLog.create({
       data: {

@@ -8,5 +8,7 @@ export function getServerConfig() {
   return {
     appBaseUrl: appBaseUrl.replace(/\/$/, ""),
     linkExpiryHours: 24, // 1 day validity
+    webhookSecret: process.env.WEBHOOK_SECRET || "WEBHOOK_SECRET",
+    sessionSecret: process.env.SESSION_SECRET || "SESSION_SECRET",
   };
 }
