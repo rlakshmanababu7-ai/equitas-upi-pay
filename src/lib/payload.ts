@@ -16,7 +16,9 @@ export interface DecodedPaymentData {
 }
 
 /**
- * Encodes loan payment details into a URL-safe base64 token without any database.
+ * Encodes loan payment details into a clean, WhatsApp-safe hexadecimal alphanumeric token.
+ * Contains ONLY [0-9a-f] characters - NO underscores (_) or dashes (-) which break WhatsApp's
+ * link parser due to WhatsApp markdown italics formatting.
  */
 export function encodePaymentPayload(payload: PaymentPayload): string {
   const data = {
@@ -27,31 +29,45 @@ export function encodePaymentPayload(payload: PaymentPayload): string {
   };
 
   const json = JSON.stringify(data);
-  // URL-safe base64
-  if (typeof window !== "undefined") {
-    return btoa(unescape(encodeURIComponent(json)))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-  } else {
-    return Buffer.from(json, "utf-8")
-      .toString("base64url");
+  const utf8Bytes = new TextEncoder().encode(json);
+  let hex = "";
+  for (let i = 0; i < utf8Bytes.length; i++) {
+    hex += utf8Bytes[i].toString(16).padStart(2, "0");
   }
+  return hex;
 }
 
 /**
  * Decodes the token into customer and loan details.
+ * Supports both clean hex tokens and legacy base64url tokens.
  * Link expires after 1 day (24 hours).
  */
 export function decodePaymentPayload(token: string): DecodedPaymentData | null {
   try {
+    if (!token) return null;
+    const cleanToken = token.trim();
+
     let json = "";
-    if (typeof window !== "undefined") {
-      const base64 = token.replace(/-/g, "+").replace(/_/g, "/");
-      const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-      json = decodeURIComponent(escape(atob(padded)));
+
+    // 1. Hex encoding (WhatsApp-safe [0-9a-f])
+    if (/^[0-9a-fA-F]+$/.test(cleanToken) && cleanToken.length % 2 === 0) {
+      const bytes = new Uint8Array(cleanToken.length / 2);
+      for (let i = 0; i < cleanToken.length; i += 2) {
+        bytes[i / 2] = parseInt(cleanToken.substring(i, i + 2), 16);
+      }
+      json = new TextDecoder().decode(bytes);
     } else {
-      json = Buffer.from(token, "base64url").toString("utf-8");
+      // 2. Fallback for base64url tokens
+      let base64 = cleanToken.replace(/-/g, "+").replace(/_/g, "/");
+      const pad = base64.length % 4;
+      if (pad) {
+        base64 += "=".repeat(4 - pad);
+      }
+      if (typeof window !== "undefined") {
+        json = decodeURIComponent(escape(atob(base64)));
+      } else {
+        json = Buffer.from(base64, "base64").toString("utf-8");
+      }
     }
 
     const data = JSON.parse(json);
@@ -72,7 +88,8 @@ export function decodePaymentPayload(token: string): DecodedPaymentData | null {
       amount,
       expired: isExpired,
     };
-  } catch {
+  } catch (err) {
+    console.error("Decode token error:", err);
     return null;
   }
 }

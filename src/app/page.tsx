@@ -61,10 +61,11 @@ export default function GeneratorPage() {
     });
 
     const origin =
-      typeof window !== "undefined" && window.location.origin
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (typeof window !== "undefined" && window.location.origin
         ? window.location.origin
-        : "";
-    const paymentUrl = `${origin}/pay/${token}`;
+        : "");
+    const paymentUrl = `${origin.replace(/\/+$/, "")}/pay/${token}`;
 
     setGeneratedResult({
       paymentUrl,
@@ -85,7 +86,8 @@ export default function GeneratorPage() {
   // Only share that link only in WhatsApp share (no extra text)
   const getWhatsAppUrl = () => {
     if (!generatedResult) return "#";
-    return `https://api.whatsapp.com/send?text=${encodeURIComponent(generatedResult.paymentUrl)}`;
+    const cleanUrl = generatedResult.paymentUrl.trim();
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(cleanUrl)}`;
   };
 
   return (
