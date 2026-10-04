@@ -2,14 +2,15 @@ import { generateEquitasUpiId } from "./upi";
 
 export interface PaymentPayload {
   customerName: string;
-  loanAccountNumber: string;
+  loanAccountNumber?: string | null;
+  upiId: string;
   amount?: number | null;
   createdAt?: number;
 }
 
 export interface DecodedPaymentData {
   customerName: string;
-  loanAccountNumber: string;
+  loanAccountNumber: string | null;
   upiId: string;
   amount: number | null;
   expired: boolean;
@@ -23,7 +24,10 @@ export interface DecodedPaymentData {
 export function encodePaymentPayload(payload: PaymentPayload): string {
   const data = {
     n: payload.customerName.trim(),
-    l: payload.loanAccountNumber.trim().toUpperCase(),
+    l: payload.loanAccountNumber && payload.loanAccountNumber.trim()
+      ? payload.loanAccountNumber.trim().toUpperCase()
+      : null,
+    u: payload.upiId.trim(),
     a: payload.amount && payload.amount > 0 ? Math.round(payload.amount * 100) / 100 : null,
     t: payload.createdAt || Date.now(),
   };
@@ -71,10 +75,18 @@ export function decodePaymentPayload(token: string): DecodedPaymentData | null {
     }
 
     const data = JSON.parse(json);
-    if (!data.n || !data.l) return null;
+    if (!data.n || (!data.l && !data.u)) return null;
 
-    const loanAccountNumber = String(data.l).trim().toUpperCase();
     const customerName = String(data.n).trim();
+    const loanAccountNumber = data.l ? String(data.l).trim().toUpperCase() : null;
+    const upiId = data.u
+      ? String(data.u).trim()
+      : loanAccountNumber
+      ? generateEquitasUpiId(loanAccountNumber)
+      : "";
+
+    if (!upiId) return null;
+
     const amount = data.a ? Number(data.a) : null;
     const createdAt = data.t ? Number(data.t) : Date.now();
 
@@ -84,7 +96,7 @@ export function decodePaymentPayload(token: string): DecodedPaymentData | null {
     return {
       customerName,
       loanAccountNumber,
-      upiId: generateEquitasUpiId(loanAccountNumber),
+      upiId,
       amount,
       expired: isExpired,
     };

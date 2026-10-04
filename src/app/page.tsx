@@ -9,13 +9,15 @@ import { encodePaymentPayload } from "@/lib/payload";
 export default function GeneratorPage() {
   const [customerName, setCustomerName] = useState("");
   const [loanAccountNumber, setLoanAccountNumber] = useState("");
+  const [isManualUpi, setIsManualUpi] = useState(false);
+  const [manualUpiId, setManualUpiId] = useState("");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const [generatedResult, setGeneratedResult] = useState<{
     paymentUrl: string;
     customerName: string;
-    loanAccountNumber: string;
+    loanAccountNumber: string | null;
     upiId: string;
     amount: number | null;
   } | null>(null);
@@ -25,37 +27,68 @@ export default function GeneratorPage() {
   // Auto-calculated UPI ID preview as user types
   const autoUpiId = loanAccountNumber.trim()
     ? generateEquitasUpiId(loanAccountNumber)
-    : "loan.<loannumber>@equitas";
+    : "loan.<loanaccountnumber>@equitas";
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!customerName.trim()) {
+    const trimmedCustomer = customerName.trim();
+    if (!trimmedCustomer) {
       setError("Please enter Customer Name.");
       return;
     }
 
-    const trimmedLoan = loanAccountNumber.trim().toUpperCase();
-    if (!trimmedLoan) {
-      setError("Please enter Loan Account Number.");
-      return;
+    let finalUpiId = "";
+    let finalLoanAccount: string | null = null;
+
+    if (!isManualUpi) {
+      // Auto-generate Mode: Loan Account Number is mandatory (12 numeric digits)
+      const trimmedLoan = loanAccountNumber.trim();
+      if (!trimmedLoan) {
+        setError("Please enter Loan Account Number.");
+        return;
+      }
+
+      if (trimmedLoan.length !== 12 || !/^\d{12}$/.test(trimmedLoan)) {
+        setError("Loan Account Number must be exactly 12 digits (numbers only).");
+        return;
+      }
+
+      finalLoanAccount = trimmedLoan;
+      finalUpiId = generateEquitasUpiId(trimmedLoan);
+    } else {
+      // Manual Mode: Manual UPI ID is mandatory, Loan Account Number is optional
+      const trimmedUpi = manualUpiId.trim().toLowerCase();
+      if (!trimmedUpi) {
+        setError("Please enter Manual UPI ID.");
+        return;
+      }
+
+      if (!trimmedUpi.includes("@") || trimmedUpi.startsWith("@") || trimmedUpi.endsWith("@")) {
+        setError("Please enter a valid UPI ID (e.g. loan.DHJ474949@equitas or name@bank).");
+        return;
+      }
+
+      finalUpiId = trimmedUpi;
+
+      if (loanAccountNumber.trim()) {
+        const trimmedLoan = loanAccountNumber.trim();
+        if (trimmedLoan.length !== 12 || !/^\d{12}$/.test(trimmedLoan)) {
+          setError("If provided, Loan Account Number must be 12 digits (numbers only).");
+          return;
+        }
+        finalLoanAccount = trimmedLoan;
+      }
     }
 
-    // Compulsory 12 digits validation (numbers only)
-    if (trimmedLoan.length !== 12 || !/^\d{12}$/.test(trimmedLoan)) {
-      setError("Loan Account Number must be exactly 12 digits (numbers only).");
-      return;
-    }
-
-    const trimmedCustomer = customerName.trim();
     const parsedAmount = amount.trim() ? parseFloat(amount) : null;
-    const upiId = generateEquitasUpiId(trimmedLoan);
 
     // Generate stateless token directly on frontend - NO DB required
     const token = encodePaymentPayload({
       customerName: trimmedCustomer,
-      loanAccountNumber: trimmedLoan,
+      loanAccountNumber: finalLoanAccount,
+      upiId: finalUpiId,
       amount: parsedAmount,
       createdAt: Date.now(),
     });
@@ -70,8 +103,8 @@ export default function GeneratorPage() {
     setGeneratedResult({
       paymentUrl,
       customerName: trimmedCustomer,
-      loanAccountNumber: trimmedLoan,
-      upiId,
+      loanAccountNumber: finalLoanAccount,
+      upiId: finalUpiId,
       amount: parsedAmount,
     });
   };
@@ -105,11 +138,15 @@ export default function GeneratorPage() {
       {/* Main Form Container */}
       <main className="max-w-lg mx-auto px-4 py-4 w-full flex-1 flex flex-col justify-center">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5">
-          <h1 className="text-xl font-bold text-[#003874] tracking-tight mb-1">
-            Generate Loan Payment Link
-          </h1>
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-xl font-bold text-[#003874] tracking-tight">
+              Generate Loan Payment Link
+            </h1>
+          </div>
           <p className="text-xs text-slate-500 mb-4">
-            Enter 12-digit loan details to generate an instant Equitas UPI payment link
+            {isManualUpi
+              ? "Enter Manual UPI ID to generate instant Equitas payment link"
+              : "Enter 12-digit loan details to generate an instant Equitas UPI payment link"}
           </p>
 
           {error && (
@@ -134,11 +171,11 @@ export default function GeneratorPage() {
               />
             </div>
 
-            {/* Field 2: Loan Account Number (Mandatory - Compulsory 12 Digits) */}
+            {/* Field 2: Loan Account Number (Mandatory in Auto mode, Optional in Manual mode) */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Loan Account Number <span className="text-red-500">*</span>
+                  Loan Account Number {!isManualUpi ? <span className="text-red-500">*</span> : <span className="text-[11px] text-slate-400 font-normal lowercase">(optional)</span>}
                 </label>
                 <span
                   className={`text-[11px] font-semibold ${
@@ -153,9 +190,9 @@ export default function GeneratorPage() {
               <input
                 type="text"
                 inputMode="numeric"
-                required
+                required={!isManualUpi}
                 maxLength={12}
-                placeholder="e.g. 7000XXXXXXXX"
+                placeholder="e.g. 123456789012"
                 value={loanAccountNumber}
                 onChange={(e) => {
                   // Only allow digits 0-9
@@ -172,14 +209,60 @@ export default function GeneratorPage() {
                 }`}
               />
 
-              {/* Automatic UPI ID Preview */}
-              <div className="mt-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                <span className="text-slate-500">Generated UPI ID:</span>
-                <span className="font-mono font-bold text-[#003874]">
-                  {autoUpiId}
+              {/* UPI ID Selection / Preview Area */}
+              {!isManualUpi ? (
+                <div className="mt-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">Generated UPI ID:</span>
+                    <span className="font-mono font-bold text-[#003874]">
+                      {autoUpiId}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsManualUpi(true);
+                      setError(null);
+                    }}
+                    className="px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-50 text-[11px] font-semibold text-[#003874] shadow-2xs transition-colors shrink-0"
+                  >
+                    Type Manual UPI ID
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Field 2.5: Manual UPI ID (Mandatory when isManualUpi is true) */}
+            {isManualUpi ? (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Manual UPI ID <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsManualUpi(false);
+                      setError(null);
+                    }}
+                    className="text-[11px] font-semibold text-[#003874] hover:underline"
+                  >
+                    ← Switch to Auto-generate
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. loan.DHJ474949@equitas"
+                  value={manualUpiId}
+                  onChange={(e) => setManualUpiId(e.target.value.trim().toLowerCase())}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003874]"
+                />
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Loan Account Number is optional when entering a Manual UPI ID.
                 </span>
               </div>
-            </div>
+            ) : null}
 
             {/* Field 3: Amount (Optional - Text Field Only, Numbers Only, No Stepper Arrows) */}
             <div>
@@ -232,9 +315,11 @@ export default function GeneratorPage() {
                   <div>
                     <strong>Customer:</strong> {generatedResult.customerName}
                   </div>
-                  <div>
-                    <strong>Loan A/c:</strong> {generatedResult.loanAccountNumber}
-                  </div>
+                  {generatedResult.loanAccountNumber && (
+                    <div>
+                      <strong>Loan A/c:</strong> {generatedResult.loanAccountNumber}
+                    </div>
+                  )}
                   <div>
                     <strong>UPI ID:</strong>{" "}
                     <code className="font-mono font-bold text-[#003874]">

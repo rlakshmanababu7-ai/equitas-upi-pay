@@ -4,8 +4,8 @@
  */
 
 export interface EquitasPaymentDetails {
-  loanAccountNumber: string;
-  upiId: string; // Format: loan.<loanaccountnumber>@equitas
+  loanAccountNumber?: string | null;
+  upiId: string;
   customerName: string;
   amount?: number | null; // Optional
 }
@@ -19,7 +19,7 @@ export interface UpiAppLinks {
 
 /**
  * Generate Equitas UPI ID from loan account number.
- * Example: loan.DHJ474949@equitas
+ * Example: loan.123456789012@equitas
  */
 export function generateEquitasUpiId(loanAccountNumber: string): string {
   const sanitized = loanAccountNumber.trim().replace(/\s+/g, "");
@@ -30,12 +30,19 @@ export function generateEquitasUpiId(loanAccountNumber: string): string {
  * Builds the standard upi://pay query string
  */
 export function buildEquitasUpiQuery(details: EquitasPaymentDetails): string {
+  const tr = details.loanAccountNumber && details.loanAccountNumber.trim()
+    ? details.loanAccountNumber.trim()
+    : `EQ${Date.now()}`;
+  const tn = details.loanAccountNumber && details.loanAccountNumber.trim()
+    ? `Loan ${details.loanAccountNumber.trim()}`
+    : "Equitas Loan Payment";
+
   const params = new URLSearchParams({
-    pa: details.upiId,
+    pa: details.upiId.trim(),
     pn: "Equitas",
     cu: "INR",
-    tr: details.loanAccountNumber.trim(),
-    tn: `Loan ${details.loanAccountNumber.trim()}`,
+    tr,
+    tn,
   });
 
   if (details.amount && details.amount > 0) {

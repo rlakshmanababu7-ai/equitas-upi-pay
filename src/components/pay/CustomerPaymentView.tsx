@@ -224,13 +224,15 @@ export default function CustomerPaymentView({ token }: { token: string }) {
               </span>
             </div>
 
-            {/* Loan Account Number (Larger, Monospaced & Clearer) */}
-            <div className="flex justify-between items-baseline py-0.5 border-t border-slate-100 pt-1.5">
-              <span className="text-xs font-semibold text-slate-500 shrink-0">Loan Account</span>
-              <span className="text-base sm:text-lg font-mono font-extrabold text-slate-900 tracking-wider text-right">
-                {data.loanAccountNumber}
-              </span>
-            </div>
+            {/* Loan Account Number (Larger, Monospaced & Clearer - rendered if present) */}
+            {data.loanAccountNumber ? (
+              <div className="flex justify-between items-baseline py-0.5 border-t border-slate-100 pt-1.5">
+                <span className="text-xs font-semibold text-slate-500 shrink-0">Loan Account</span>
+                <span className="text-base sm:text-lg font-mono font-extrabold text-slate-900 tracking-wider text-right">
+                  {data.loanAccountNumber}
+                </span>
+              </div>
+            ) : null}
 
             {/* Loan UPI ID with copy button (Larger, high contrast) */}
             <div className="border-t border-slate-100 pt-1.5">
@@ -341,7 +343,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
 
             <div className="pt-1">
               <span className="text-xs font-bold text-[#003874] block">Scan to Pay</span>
-              <span className="text-sm font-bold text-slate-800 font-mono">{data.loanAccountNumber}</span>
+              <span className="text-sm font-bold text-slate-800 font-mono">{data.loanAccountNumber || data.upiId}</span>
             </div>
 
             {qrCodeDataUrl ? (
