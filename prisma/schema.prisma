@@ -1,6 +1,3 @@
-// Prisma schema for EMI UPI Payment Link Application
-// Compatible with SQLite for local zero-config setup and PostgreSQL (Vercel Postgres, Neon, Supabase) for production.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,71 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model StaffUser {
-  id           String        @id @default(cuid())
-  username     String        @unique
-  name         String
-  passwordHash String
-  role         String        @default("STAFF") // STAFF, ADMIN
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  paymentLinks PaymentLink[]
-}
-
 model PaymentLink {
-  id             String    @id @default(cuid())
-  // Store only the SHA-256 hash of the unguessable raw token
-  tokenHash      String    @unique
-  // Short prefix for staff audit and search (e.g. first 8 characters)
-  tokenPrefix    String
-  customerName   String?
-  customerUpiId  String    // For internal office reference only! Never the recipient!
-  amount         Float     // In INR
-  loanReference  String
-  description    String?
-  status         String    @default("ACTIVE") // ACTIVE, EXPIRED, CONFIRMED, FAILED
-  expiresAt      DateTime  // Exactly 5 minutes after creation
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  createdById    String
-  createdBy      StaffUser @relation(fields: [createdById], references: [id])
-
-  // Payment reconciliation fields (populated upon webhook / trusted provider verification)
-  isVerified         Boolean   @default(false)
-  verifiedAt         DateTime?
-  paymentProviderRef String?   // Gateway transaction ID / Bank UTR
-  verificationMethod String?   // e.g. "WEBHOOK_RAZORPAY", "WEBHOOK_CASHFREE", "MANUAL_RECONCILIATION"
-  verificationNotes  String?
-
-  auditLogs      AuditLog[]
+  id                String    @id @default(cuid())
+  tokenHash         String    @unique
+  customerName      String
+  loanAccountNumber String
+  upiId             String    // Format: loan.<loanaccountnumber>@equitas
+  amount            Float?    // Optional
+  status            String    @default("ACTIVE")
+  expiresAt         DateTime  // 1 day validity
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([tokenHash])
-  @@index([expiresAt])
-  @@index([status])
-  @@index([loanReference])
-}
-
-model AuditLog {
-  id            String       @id @default(cuid())
-  action        String       // LINK_CREATED, LINK_VIEWED, QR_GENERATED, INTENT_CLICKED, STATUS_CHECKED, EXPIRED_ATTEMPT, WEBHOOK_RECEIVED, STAFF_LOGIN
-  paymentLinkId String?
-  paymentLink   PaymentLink? @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
-  ipAddress     String?
-  userAgent     String?
-  metadata      String?      // JSON encoded details
-  createdAt     DateTime     @default(now())
-
-  @@index([action])
-  @@index([createdAt])
-  @@index([paymentLinkId])
-}
-
-model RateLimitRecord {
-  id          String   @id @default(cuid())
-  key         String   @unique // e.g. "create_link:ip" or "lookup:ip"
-  count       Int      @default(1)
-  expiresAt   DateTime
-
-  @@index([expiresAt])
+  @@index([loanAccountNumber])
 }

@@ -2,12 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Apex FinServe | Secure UPI EMI Payment Gateway",
-  description:
-    "Generate short-lived, encrypted EMI payment links and collect direct bank settlements via UPI.",
-  icons: {
-    icon: "/favicon.ico",
-  },
+  title: "Equitas | Loan UPI Payment",
+  description: "Quick and secure loan payment via Equitas UPI.",
 };
 
 export const viewport: Viewport = {
@@ -15,7 +11,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0b1b2b",
+  themeColor: "#003874",
 };
 
 export default function RootLayout({
@@ -25,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900 selection:bg-navy-100 selection:text-navy-900">
+      <body className="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900 selection:bg-blue-100 selection:text-blue-900">
         {children}
       </body>
     </html>

@@ -1,19 +1,13 @@
 /**
- * Standards-compliant UPI (Unified Payments Interface) deep link & intent generator.
- * Specification based on NPCI UPI Linking Specs.
- *
- * CRITICAL BUSINESS RULE:
- * `payeeVpa` is ALWAYS the business receiving account (configured server-side via MERCHANT_UPI_ID).
- * It is NEVER the customer's UPI ID.
+ * Standards-compliant UPI (Unified Payments Interface) deep link & intent generator
+ * Specifically formatted for Equitas Loan Collections.
  */
 
-export interface UpiPaymentDetails {
-  payeeVpa: string;         // Business receiving UPI ID
-  payeeName: string;        // Business registered display name
-  amount: number;           // Payment amount in INR
-  transactionRef: string;   // Unique internal reference / Loan ID
-  transactionNote: string;  // Note shown in user's bank/UPI app
-  merchantCode?: string;    // MCC e.g. 6012 (Finance/Lending)
+export interface EquitasPaymentDetails {
+  loanAccountNumber: string;
+  upiId: string; // Format: loan.<loanaccountnumber>@equitas
+  customerName: string;
+  amount?: number | null; // Optional
 }
 
 export interface UpiAppLinks {
@@ -21,52 +15,51 @@ export interface UpiAppLinks {
   googlePay: string;
   phonePe: string;
   paytm: string;
-  bhim: string;
 }
 
 /**
- * Builds the standard RFC/NPCI compliant upi://pay query parameter string
+ * Generate Equitas UPI ID from loan account number.
+ * Example: loan.DHJ474949@equitas
  */
-export function buildUpiQueryString(details: UpiPaymentDetails): string {
-  const formattedAmount = details.amount.toFixed(2);
+export function generateEquitasUpiId(loanAccountNumber: string): string {
+  const sanitized = loanAccountNumber.trim().replace(/\s+/g, "");
+  return `loan.${sanitized}@equitas`;
+}
+
+/**
+ * Builds the standard upi://pay query string
+ */
+export function buildEquitasUpiQuery(details: EquitasPaymentDetails): string {
   const params = new URLSearchParams({
-    pa: details.payeeVpa,
-    pn: details.payeeName,
-    am: formattedAmount,
+    pa: details.upiId,
+    pn: "Equitas",
     cu: "INR",
-    tr: details.transactionRef,
-    tn: details.transactionNote.slice(0, 50), // Standard UPI notes max 50 chars
+    tr: details.loanAccountNumber.trim(),
+    tn: `Loan ${details.loanAccountNumber.trim()}`,
   });
 
-  if (details.merchantCode) {
-    params.set("mc", details.merchantCode);
+  if (details.amount && details.amount > 0) {
+    params.set("am", details.amount.toFixed(2));
   }
 
   return params.toString();
 }
 
 /**
- * Returns deep links for all major Indian UPI applications and the universal intent.
+ * Returns deep links for UPI applications
  */
-export function generateUpiLinks(details: UpiPaymentDetails): UpiAppLinks {
-  const queryString = buildUpiQueryString(details);
-  const universal = `upi://pay?${queryString}`;
-
+export function generateEquitasUpiLinks(details: EquitasPaymentDetails): UpiAppLinks {
+  const query = buildEquitasUpiQuery(details);
   return {
-    universal,
-    // Google Pay handles tez://upi/pay or standard upi://pay
-    googlePay: `tez://upi/pay?${queryString}`,
-    // PhonePe custom scheme
-    phonePe: `phonepe://pay?${queryString}`,
-    // Paytm UPI custom scheme
-    paytm: `paytmmp://upi/pay?${queryString}`,
-    // BHIM scheme
-    bhim: `bhim://pay?${queryString}`,
+    universal: `upi://pay?${query}`,
+    googlePay: `tez://upi/pay?${query}`,
+    phonePe: `phonepe://pay?${query}`,
+    paytm: `paytmmp://upi/pay?${query}`,
   };
 }
 
 /**
- * Formats Indian Rupee currency with standard Indian numbering system (e.g. ₹1,23,456.00)
+ * Formats Indian Rupee currency
  */
 export function formatINR(amount: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -75,19 +68,4 @@ export function formatINR(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
-}
-
-/**
- * Safely masks a customer UPI ID for internal/audit preview without exposing full identifier
- * e.g., "rahul.sharma@okicici" -> "ra***ma@okicici"
- */
-export function maskUpiId(upiId: string): string {
-  if (!upiId || !upiId.includes("@")) return upiId;
-  const [handle, provider] = upiId.split("@");
-  if (handle.length <= 3) {
-    return `${handle[0]}***@${provider}`;
-  }
-  const start = handle.slice(0, 2);
-  const end = handle.slice(-2);
-  return `${start}***${end}@${provider}`;
 }

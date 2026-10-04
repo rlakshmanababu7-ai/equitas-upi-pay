@@ -1,13 +1,5 @@
-import { redirect } from "next/navigation";
-import { getStaffSession } from "@/lib/auth";
-import StaffDashboard from "@/components/office/StaffDashboard";
+import GeneratorPage from "@/app/page";
 
-export default async function OfficePage() {
-  const session = await getStaffSession();
-
-  if (!session) {
-    redirect("/office/login");
-  }
-
-  return <StaffDashboard session={session} />;
+export default function OfficePage() {
+  return <GeneratorPage />;
 }
