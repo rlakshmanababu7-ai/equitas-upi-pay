@@ -196,7 +196,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
   return (
     <div className="h-screen w-screen max-h-screen overflow-hidden bg-slate-50 flex flex-col justify-between p-3 sm:p-4">
       {/* Centered Main Box with compact padding and no scrolling */}
-      <div className="max-w-sm mx-auto w-full flex-1 flex flex-col justify-center space-y-2.5">
+      <div className="max-w-sm mx-auto w-full flex-1 flex flex-col justify-start space-y-2.5">
         {/* Official Equitas Logo */}
         <div className="bg-white rounded-lg p-2.5 sm:p-3 border border-slate-200 shadow-xs flex items-center justify-center">
           <EquitasLogo className="h-8 sm:h-9" />
@@ -292,31 +292,26 @@ export default function CustomerPaymentView({ token }: { token: string }) {
             </a>
 
             {/* Paytm */}
-            <a
-              href={upiLinks.paytm}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-white border border-sky-200 hover:bg-sky-50/50 shadow-xs transition-transform active:scale-95"
-            >
-              <PaytmLogo className="h-6 w-auto shrink-0" />
-              <span className="text-xs font-bold text-[#002e6e]">Paytm</span>
-            </a>
+            
 
             {/* Any UPI App */}
-            <a
-              href={upiLinks.universal}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-[#003874] hover:bg-[#002855] text-white shadow-xs transition-transform active:scale-95"
-            >
-              <UpiGenericLogo className="h-4 w-auto shrink-0" />
-              <span className="text-xs font-bold">Any UPI App</span>
-            </a>
+           
           </div>
         </div>
 
         {/* Get QR Code Button (prevents page from scrolling) */}
         <div>
+           <a
+              href={upiLinks.universal}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-[#003874] hover:bg-[#002855] text-white shadow-xs transition-transform active:scale-100"
+            >
+              <UpiGenericLogo className="h-4 w-auto shrink-0" />
+              <span className="text-xs font-bold">Any UPI App</span>
+            </a>
           <button
             type="button"
             onClick={() => setShowQrModal(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors"
+            className="w-full flex items-center justify-center gap-2 mt-2 py-2 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors"
           >
             <QrCode className="w-4 h-4 text-[#003874]" />
             <span>Get QR Code</span>

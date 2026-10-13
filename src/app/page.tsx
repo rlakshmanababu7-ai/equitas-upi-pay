@@ -136,7 +136,7 @@ export default function GeneratorPage() {
       </header>
 
       {/* Main Form Container */}
-      <main className="max-w-lg mx-auto px-4 py-4 w-full flex-1 flex flex-col justify-center">
+      <main className="max-w-lg mx-auto px-4 py-1 w-full flex-1 flex flex-col justify-start">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-1">
             <h1 className="text-xl font-bold text-[#003874] tracking-tight">
@@ -218,16 +218,7 @@ export default function GeneratorPage() {
                       {autoUpiId}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsManualUpi(true);
-                      setError(null);
-                    }}
-                    className="px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-50 text-[11px] font-semibold text-[#003874] shadow-2xs transition-colors shrink-0"
-                  >
-                    Type Manual UPI ID
-                  </button>
+                  
                 </div>
               ) : null}
             </div>
