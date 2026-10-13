@@ -227,7 +227,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
             {/* Loan Account Number (Larger, Monospaced & Clearer - rendered if present) */}
             {data.loanAccountNumber ? (
               <div className="flex justify-between items-baseline py-0.5 border-t border-slate-100 pt-1.5">
-                <span className="text-xs font-semibold text-slate-500 shrink-0">Loan Account</span>
+                <span className="text-xs font-semibold text-slate-500 shrink-0">Loan Account Number</span>
                 <span className="text-base sm:text-lg font-mono font-extrabold text-slate-900 tracking-wider text-right">
                   {data.loanAccountNumber}
                 </span>

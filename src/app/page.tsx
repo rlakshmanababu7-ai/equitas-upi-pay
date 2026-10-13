@@ -140,13 +140,13 @@ export default function GeneratorPage() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-1">
             <h1 className="text-xl font-bold text-[#003874] tracking-tight">
-              Generate Loan Payment Link
+              Generate UPI Payment Link
             </h1>
           </div>
           <p className="text-xs text-slate-500 mb-4">
             {isManualUpi
               ? "Enter Manual UPI ID to generate instant Equitas payment link"
-              : "Enter 12-digit loan details to generate an instant Equitas UPI payment link"}
+              : "Enter 12-digit loan number to generate an instant Equitas UPI payment link"}
           </p>
 
           {error && (
@@ -164,7 +164,7 @@ export default function GeneratorPage() {
               <input
                 type="text"
                 required
-                placeholder="e.g. Ramesh Kumar"
+                placeholder="e.g. Suriya"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#003874]"
@@ -175,7 +175,7 @@ export default function GeneratorPage() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Loan Account Number {!isManualUpi ? <span className="text-red-500">*</span> : <span className="text-[11px] text-slate-400 font-normal lowercase">(optional)</span>}
+                  Loan Number (Flex No) {!isManualUpi ? <span className="text-red-500">*</span> : <span className="text-[11px] text-slate-400 font-normal lowercase">(optional)</span>}
                 </label>
                 <span
                   className={`text-[11px] font-semibold ${
