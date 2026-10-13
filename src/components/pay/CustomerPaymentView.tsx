@@ -207,7 +207,7 @@ export default function CustomerPaymentView({ token }: { token: string }) {
           {data.amount && data.amount > 0 ? (
             <div className="text-center pb-2 border-b border-slate-100">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Amount Due
+                Amount To Pay
               </span>
               <div className="text-2xl sm:text-3xl font-extrabold text-[#003874] tracking-tight mt-0.5">
                 {formatINR(data.amount)}
